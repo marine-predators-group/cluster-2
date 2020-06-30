@@ -1,0 +1,67 @@
+---
+title: "PSAT example"
+output: github_document
+---
+
+## Get data
+
+Can you figure out how to pull down the data in our google drive at '/MPG/data/'? Perhaps using the `googledrive` package? It would be nice to have that coded rather than having to access google drive via browser.
+
+## Take a peek
+
+Once you have the eTUFF files, the rest is pretty straightforward. Check out individual tag metadata:
+
+```{r eval=F}
+## using the tags2etuff example file
+etuff_file <- './tags2etuff/inst/extdata/159922_2020_196385/159922_2020_196385_eTUFF.txt'
+hdr <- get_header(etuff_file)
+```
+
+## Extract useful data from these standardized files
+
+Or, for example, run a loop that pulls whatever data you're interested in. Below is a partial example of getting some of the vertical data of interest. See the `tags2etuff` vignette for a more complete example of all the functionality.
+```{r eval=F}
+fList <- list.files('/MPG/data/', full.names = T)
+fList <- fList[grep('eTUFF', fList)]
+
+for (i in 1:nrow(fList)){
+  
+  etuff <- read_etuff(fList[i])
+  
+  series <- get_series(etuff)
+  pdt <- get_pdt(etuff)
+  pdt$id <- meta_sub$instrument_name[i]
+  pdt_interp <- interp_pdt(etuff)
+  pdt_interp$id <- meta_sub$instrument_name[i]
+  
+  #if (!is.na(series)){
+  temp_res <- Mode(as.numeric(diff(series$DateTime)))
+  
+  #series <- add_series_temp(series, pdt, pdt_interp)
+  series$dn <- add_daynight(series, etuff)
+  series$id <- meta_sub$instrument_name[i]
+    
+  srss <- get_srss(etuff, series)
+  srss$id <- meta_sub$instrument_name[i]
+  
+  ## might want to save the interpolated PDT data as that can be a little time consuming
+  #saveRDS(pdt_interp, file=paste(meta_sub$instrument_name[i], '_pdt_interp.RDS', sep=''))#, sep=',', col.names=F, row.names=F, append=T)
+
+  rm(etuff); gc()
+  print(i)
+  
+}
+
+```
+
+One of the most useful is `get_3d` as it nicely matches your track data to whatever time series data that might be available. Although note that you may want to match the tracking data with other metrics of vertical habitat use such as the time-at-depth information.
+
+```{r eval=F}
+
+## track + time series, aka "3d"
+df <- get_3d(etuff)
+
+## time at depth
+tad <- get_tad(etuff)
+```
+
